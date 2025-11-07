@@ -1,1 +1,4 @@
-generated_image.png
+.env
+venv/
+.env.*
+/.venv
