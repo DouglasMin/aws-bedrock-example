@@ -1,4 +1,5 @@
-streamlit
+streamlit==1.40.0
 boto3
 Pillow
 python-dotenv
+streamlit-drawable-canvas
