@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Sonic 음성 챗봇</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .settings {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .settings-title {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        .voice-selector {
+            position: relative;
+            flex: 1;
+            max-width: 300px;
+        }
+
+        .voice-selected {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 8px 35px 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .voice-selected:hover {
+            border-color: #667eea;
+        }
+
+        .voice-selected.active {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .voice-selected-icon {
+            font-size: 1.2em;
+        }
+
+        .voice-selected-text {
+            flex: 1;
+        }
+
+        .voice-selected-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .voice-selected-info {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .voice-dropdown-arrow {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7em;
+            color: #999;
+            transition: transform 0.3s;
+        }
+
+        .voice-selected.active .voice-dropdown-arrow {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .voice-dropdown {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .voice-dropdown.show {
+            display: block;
+            animation: dropdownSlide 0.2s ease-out;
+        }
+
+        @keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .voice-option {
+            padding: 10px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .voice-option:last-child {
+            border-bottom: none;
+        }
+
+        .voice-option:hover {
+            background: #f8f9ff;
+        }
+
+        .voice-option.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .voice-option-icon {
+            font-size: 1.3em;
+        }
+
+        .voice-option-text {
+            flex: 1;
+        }
+
+        .voice-option-name {
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .voice-option-info {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .voice-option.selected .voice-option-info {
+            opacity: 0.9;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .message-wrapper {
+            display: flex;
+            margin-bottom: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+            }
+        }
+
+        .message-wrapper.user {
+            justify-content: flex-end;
+        }
+
+        .message-wrapper.assistant {
+            justify-content: flex-start;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 70%;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.user {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .message.assistant {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.system {
+            background: transparent;
+            color: #999;
+            text-align: center;
+            max-width: 100%;
+            font-size: 0.85em;
+            padding: 8px;
+        }
+
+        .message.error {
+            background: #fee;
+            color: #c33;
+            max-width: 100%;
+            text-align: center;
+        }
+
+        .message-content {
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 0.7em;
+            opacity: 0.6;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .message.assistant .message-time {
+            text-align: left;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            flex-shrink: 0;
+            margin: 0 8px;
+        }
+
+        .avatar.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            order: 2;
+        }
+
+        .avatar.assistant {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            order: 1;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .bottom-bar {
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            padding: 15px 30px;
+            flex-shrink: 0;
+        }
+
+        .audio-visualizer {
+            height: 50px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 10px;
+        }
+
+        .audio-bar {
+            width: 4px;
+            background: #667eea;
+            border-radius: 2px;
+            transition: height 0.1s;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .status {
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .status.ready {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.active {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .mic-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #28a745;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.4;
+                transform: scale(1.2);
+            }
+        }
+
+        .speaking-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #ff5722;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 0.8s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Nova Sonic 음성 챗봇</h1>
+            <p>AWS Bedrock Nova Sonic - 실시간 음성 대화</p>
+        </div>
+
+        <div class="content">
+            <div class="settings">
+                <div class="settings-title">🎙️ Voice</div>
+                <div class="voice-selector">
+                    <div class="voice-selected" id="voiceSelected">
+                        <span class="voice-selected-icon">👨</span>
+                        <div class="voice-selected-text">
+                            <div class="voice-selected-name">Matthew</div>
+                            <div class="voice-selected-info">US English</div>
+                        </div>
+                        <span class="voice-dropdown-arrow">▼</span>
+                    </div>
+                    <div class="voice-dropdown" id="voiceDropdown">
+                        <div class="voice-option selected" data-voice="matthew" data-icon="👨" data-lang="US English">
+                            <span class="voice-option-icon">👨</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Matthew</div>
+                                <div class="voice-option-info">US English</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="tiffany" data-icon="👩" data-lang="US English">
+                            <span class="voice-option-icon">👩</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Tiffany</div>
+                                <div class="voice-option-info">US English</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="amy" data-icon="👩" data-lang="UK English">
+                            <span class="voice-option-icon">👩</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Amy</div>
+                                <div class="voice-option-info">UK English</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="lupe" data-icon="👩" data-lang="Español">
+                            <span class="voice-option-icon">👩</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Lupe</div>
+                                <div class="voice-option-info">Español</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="carlos" data-icon="👨" data-lang="Español">
+                            <span class="voice-option-icon">👨</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Carlos</div>
+                                <div class="voice-option-info">Español</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="ambre" data-icon="👩" data-lang="Français">
+                            <span class="voice-option-icon">👩</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Ambre</div>
+                                <div class="voice-option-info">Français</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="florian" data-icon="👨" data-lang="Français">
+                            <span class="voice-option-icon">👨</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Florian</div>
+                                <div class="voice-option-info">Français</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="greta" data-icon="👩" data-lang="Deutsch">
+                            <span class="voice-option-icon">👩</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Greta</div>
+                                <div class="voice-option-info">Deutsch</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="lennart" data-icon="👨" data-lang="Deutsch">
+                            <span class="voice-option-icon">👨</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Lennart</div>
+                                <div class="voice-option-info">Deutsch</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="beatrice" data-icon="👩" data-lang="Italiano">
+                            <span class="voice-option-icon">👩</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Beatrice</div>
+                                <div class="voice-option-info">Italiano</div>
+                            </div>
+                        </div>
+                        <div class="voice-option" data-voice="lorenzo" data-icon="👨" data-lang="Italiano">
+                            <span class="voice-option-icon">👨</span>
+                            <div class="voice-option-text">
+                                <div class="voice-option-name">Lorenzo</div>
+                                <div class="voice-option-info">Italiano</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="message-wrapper system">
+                    <div class="message system">
+                        👋 안녕하세요! Start 버튼을 눌러 대화를 시작하세요.
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-bar">
+                <div id="audioVisualizer" class="audio-visualizer" style="display: none;">
+                    <!-- 음성 레벨 바들 -->
+                </div>
+
+                <div class="controls">
+                    <button id="startBtn" class="btn-start">
+                        <span>▶️</span>
+                        <span>Start</span>
+                    </button>
+                    <button id="stopBtn" class="btn-stop" disabled>
+                        <span>⏹️</span>
+                        <span>Stop</span>
+                    </button>
+                </div>
+
+                <div id="status" class="status ready">⚪ 준비됨</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
