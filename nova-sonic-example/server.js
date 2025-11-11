@@ -203,7 +203,7 @@ wss.on('connection', (ws) => {
         // 세션 준비 완료 표시
         sessionReady = true;
         
-        // 오디오 이벤트 스트리밍
+        // 오디오 이벤트 스트리밍 (AWS 문서: "immediately sent")
         let sentCount = 0;
         while (isActive) {
             if (audioQueue.length > 0) {
@@ -217,8 +217,10 @@ wss.on('connection', (ws) => {
                 if (sentCount % 100 === 0) {
                     console.log(`📤 Sent ${sentCount} audio events to Bedrock, queue: ${audioQueue.length}`);
                 }
+            } else {
+                // 큐가 비어있을 때만 짧은 대기 (CPU 과부하 방지)
+                await new Promise(resolve => setTimeout(resolve, 1));
             }
-            await new Promise(resolve => setTimeout(resolve, 10));
         }
         
         console.log('🔚 Event stream ended');
