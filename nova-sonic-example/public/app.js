@@ -171,6 +171,21 @@ async function startConversation() {
                 visualizerDiv.style.display = 'flex';
                 updateStatus('active', '🎤 듣고 있어요...');
                 addMessage('system', '✅ 연결 완료! 이제 말씀해주세요.');
+            } else if (data.type === 'barge-in') {
+                // Barge-in: 사용자가 AI 말을 끊음
+                console.log('🛑 Barge-in: Clearing audio queue and stopping playback');
+                
+                // 1. 오디오 큐 비우기
+                audioQueue = [];
+                
+                // 2. 재생 플래그 리셋
+                isPlayingAudio = false;
+                
+                // 3. 상태 업데이트
+                updateStatus('active', '🎤 듣고 있어요...');
+                hideTypingIndicator();
+                
+                console.log('✅ Audio playback stopped due to user interruption');
             } else if (data.type === 'text') {
                 hideTypingIndicator();
                 addMessage(data.role, data.content);

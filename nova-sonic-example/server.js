@@ -365,6 +365,15 @@ wss.on('connection', (ws) => {
                             // contentEnd
                             else if (evt.contentEnd) {
                                 const stopReason = evt.contentEnd.stopReason;
+                                
+                                // Barge-in 감지
+                                if (stopReason === 'INTERRUPTED') {
+                                    console.log('🛑 Barge-in detected! User interrupted AI speech');
+                                    ws.send(JSON.stringify({
+                                        type: 'barge-in',
+                                        message: 'User interrupted'
+                                    }));
+                                }
                                 //console.log(`📝 Content end: ${stopReason}`);
                             }
                             // usageEvent
