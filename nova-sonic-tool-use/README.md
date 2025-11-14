@@ -1,59 +1,90 @@
-# Nova Sonic 실시간 음성 챗봇 with Tool Use
+# Nova Sonic 실시간 음성 대화 앱 (Tool Use)
 
-AWS Bedrock Nova Sonic 모델을 사용한 실시간 음성 대화 챗봇입니다.
-**Tool Use 기능**을 통해 날씨 조회, 웹 검색 등 외부 도구를 활용할 수 있습니다.
+AWS Bedrock Nova Sonic을 사용한 실시간 음성 대화 애플리케이션입니다. Tool Use 기능으로 날씨 조회와 웹 검색이 가능합니다.
 
-## 🚀 빠른 시작
+## 주요 기능
 
-```bash
-# 1. 의존성 설치
-npm install
+- 🎤 **실시간 음성 대화**: Speech-to-Speech 양방향 스트리밍
+- 🔧 **Tool Use**: 날씨 조회 (Open-Meteo), 웹 검색 (DuckDuckGo)
+- 🛑 **Barge-in**: AI가 말하는 중에도 끊고 말할 수 있음
+- 🎙️ **다양한 음성**: Matthew, Tiffany, Amy 등 여러 음성 선택 가능
+- 📦 **모듈화 구조**: 쉽게 확장 가능한 깔끔한 코드 구조
 
-# 2. 환경 변수 설정
-cp .env.example .env
-# .env 파일을 열어서 AWS 자격 증명 입력
+## 프로젝트 구조
 
-# 3. 서버 실행
-npm start
-
-# 4. 브라우저에서 열기
-# http://localhost:3000
+```
+nova-sonic-tool-use/
+├── server.js              # Entry point (dotenv + src/server 로드)
+├── src/
+│   ├── server.js         # WebSocket 서버
+│   ├── client.js         # Bedrock 클라이언트 래퍼
+│   ├── session.js        # 세션 관리 클래스
+│   └── config.js         # 설정 상수
+├── tools/
+│   ├── index.js          # Tool registry
+│   ├── weather.js        # 날씨 조회 도구
+│   └── search.js         # 웹 검색 도구
+├── public/
+│   ├── index.html        # 웹 UI
+│   ├── app.js            # 클라이언트 JavaScript
+│   └── audio-processor.js # AudioWorklet 프로세서
+├── package.json
+├── .env                  # AWS 자격증명 (생성 필요)
+└── README.md            # 이 파일
 ```
 
-## 📋 요구사항
+## 설치 및 실행
 
-- Node.js 18 이상
-- AWS 계정 및 자격 증명
-- Nova Sonic 모델 접근 권한
+### 1. 의존성 설치
 
-## ⚙️ 환경 변수
+```bash
+npm install
+```
 
-`.env` 파일에 다음 내용을 입력하세요:
+### 2. 환경 변수 설정
 
-```env
+`.env` 파일을 생성하고 AWS 자격증명을 입력하세요:
+
+```bash
 AWS_ACCESS_KEY_ID=your-access-key-id
 AWS_SECRET_ACCESS_KEY=your-secret-access-key
 AWS_REGION=us-east-1
 PORT=3000
 ```
 
-## 🔧 Tool Use 기능
+### 3. 서버 실행
+
+```bash
+npm start
+```
+
+브라우저에서 `http://localhost:3000`에 접속하세요.
+
+## 사용법
+
+1. 브라우저에서 `http://localhost:3000` 접속
+2. 음성 선택 (Matthew, Tiffany, Amy 등)
+3. "Start Conversation" 버튼 클릭
+4. 마이크 권한 허용
+5. 말하기 시작!
+6. AI가 필요시 자동으로 도구 사용 (날씨, 검색)
+7. "Stop Conversation"으로 종료
+
+## Tool Use 기능
 
 ### 사용 가능한 도구
 
-1. **날씨 조회** (`get_weather`)
-   - 도시 이름으로 현재 날씨 정보 조회
-   - API: Open-Meteo (무료, API 키 불필요)
-   - 예시: "서울 날씨 알려줘", "What's the weather in Tokyo?"
+#### 1. 날씨 조회 (`get_weather`)
+- **설명**: 도시 이름으로 현재 날씨 정보 조회
+- **API**: Open-Meteo (무료, API 키 불필요)
+- **예시**: "서울 날씨 알려줘", "What's the weather in Tokyo?"
 
-2. **웹 검색** (`web_search`)
-   - DuckDuckGo로 실시간 정보 검색
-   - API: DuckDuckGo Instant Answer (무료, API 키 불필요)
-   - 예시: "최신 뉴스 검색해줘", "Search for AI news"
+#### 2. 웹 검색 (`web_search`)
+- **설명**: DuckDuckGo로 실시간 정보 검색
+- **API**: DuckDuckGo Instant Answer (무료, API 키 불필요)
+- **예시**: "최신 뉴스 검색해줘", "Search for AI news"
 
-### 도구 추가 방법
-
-새로운 도구를 추가하려면:
+### 새로운 도구 추가하기
 
 1. `tools/` 폴더에 새 파일 생성 (예: `calculator.js`)
 2. `getToolSpec()` 함수로 도구 스펙 정의
@@ -64,6 +95,7 @@ PORT=3000
 
 ```javascript
 // tools/your-tool.js
+
 function getToolSpec() {
   return {
     toolSpec: {
@@ -93,56 +125,69 @@ async function execute(params) {
 module.exports = { getToolSpec, execute };
 ```
 
-## 🎤 사용법
+그 다음 `tools/index.js`에 등록:
 
-1. 브라우저에서 `http://localhost:3000` 접속
-2. 음성 선택 (Matthew, Tiffany, Amy 등)
-3. "Start Conversation" 버튼 클릭
-4. 마이크 권한 허용
-5. 말하기 시작!
-6. AI가 필요시 자동으로 도구 사용
-7. "Stop Conversation"으로 종료
+```javascript
+const yourTool = require('./your-tool');
 
-## 🏗️ 프로젝트 구조
-
-```
-nova-sonic-tool-use/
-├── server.js              # Node.js WebSocket 서버 (Tool Use 통합)
-├── tools/                 # 도구 모듈
-│   ├── weather.js        # 날씨 조회 도구
-│   ├── search.js         # 웹 검색 도구
-│   └── index.js          # 도구 레지스트리
-├── public/
-│   ├── index.html        # 웹 UI (도구 메시지 표시)
-│   ├── app.js            # 클라이언트 JavaScript
-│   └── audio-processor.js # AudioWorklet 프로세서
-├── package.json
-├── .env                  # 환경 변수 (생성 필요)
-└── README.md
+const tools = {
+  'get_weather': weather,
+  'web_search': search,
+  'your_tool_name': yourTool  // 추가
+};
 ```
 
-## 🎯 주요 기능
+## 기술 스택
 
-- ✅ 실시간 양방향 음성 스트리밍
-- ✅ 낮은 지연시간 대화
-- ✅ 실시간 ASR 전사 (음성 → 텍스트)
-- ✅ 자연스러운 음성 응답
-- ✅ 11가지 음성 선택 (다국어 지원)
-- ✅ WebSocket 기반 실시간 통신
-- ✅ **Tool Use: 날씨 조회, 웹 검색**
-- ✅ **자동 도구 선택 (AI가 필요시 판단)**
-- ✅ **도구 실행 결과 실시간 표시**
+### Backend
+- **Node.js**: 서버 런타임
+- **Express**: 웹 서버
+- **WebSocket (ws)**: 실시간 양방향 통신
+- **AWS SDK**: Bedrock Runtime Client
+- **HTTP/2**: 양방향 스트리밍
 
-## 📚 Tool Use 작동 방식
+### Frontend
+- **Vanilla JavaScript**: 프레임워크 없이 순수 JS
+- **Web Audio API**: 오디오 입출력 처리
+- **AudioWorklet**: 실시간 오디오 프로세싱
+- **Canvas API**: 음성 시각화
 
-1. **사용자 음성 입력**: "서울 날씨 알려줘"
-2. **Nova Sonic 분석**: 날씨 정보가 필요함을 인식
-3. **도구 호출**: `get_weather` 도구 자동 선택
-4. **도구 실행**: Open-Meteo API로 날씨 조회
-5. **결과 반환**: 도구 결과를 Nova Sonic에 전달
-6. **음성 응답**: "서울의 현재 날씨는 맑음이고 기온은 15도입니다"
+### AI & APIs
+- **AWS Bedrock Nova Sonic**: 음성 대화 AI
+- **Open-Meteo API**: 날씨 정보
+- **DuckDuckGo API**: 웹 검색
 
-## 🔧 문제 해결
+## 주요 구현 특징
+
+### 1. 모듈화된 구조
+- **Entry Point** (`server.js`): 최소한의 코드로 앱 시작
+- **Server** (`src/server.js`): WebSocket 연결 관리만
+- **Client** (`src/client.js`): Bedrock 통신 로직만
+- **Session** (`src/session.js`): 세션 상태 및 이벤트 스트림 관리
+- **Config** (`src/config.js`): 모든 설정 상수 중앙 관리
+
+### 2. 이벤트 스트리밍
+- Async Generator로 양방향 스트리밍 구현
+- 오디오 청크를 큐에 저장하여 순차 전송
+- Bedrock 응답을 실시간으로 처리
+
+### 3. Tool Use 통합
+- 도구 스펙을 `promptStart`에 포함
+- AI가 자동으로 적절한 도구 선택
+- 도구 실행 결과를 다시 AI에게 전달
+- AI가 결과를 자연스럽게 음성으로 설명
+
+### 4. Barge-in 지원
+- `contentEnd.stopReason === 'INTERRUPTED'` 감지
+- 오디오 재생 큐 즉시 비우기
+- 사용자가 AI 말을 끊고 바로 말할 수 있음
+
+### 5. Speculative Text 필터링
+- `generationStage === 'SPECULATIVE'` 텍스트 무시
+- FINAL 텍스트만 UI에 표시
+- 더 정확한 전사 결과 제공
+
+## 문제 해결
 
 ### 마이크 권한 오류
 - 브라우저 설정에서 마이크 권한 확인
@@ -162,19 +207,16 @@ nova-sonic-tool-use/
 - 서버 로그에서 도구 호출 확인
 - `temperature: 0` 설정 확인 (tool use 최적화)
 
-## 📖 참고 문서
+## 참고 문서
 
 - [Nova Sonic 공식 문서](https://docs.aws.amazon.com/nova/latest/userguide/speech.html)
 - [Nova Sonic Tool Use](https://docs.aws.amazon.com/nova/latest/userguide/speech-tools.html)
 - [AWS 샘플 코드](https://github.com/aws-samples/amazon-nova-samples/tree/main/speech-to-speech)
 
-## 🎨 기술 스택
-
-- **Backend**: Node.js, Express, WebSocket
-- **Frontend**: Vanilla JavaScript, Web Audio API, AudioWorklet
-- **AI**: AWS Bedrock Nova Sonic
-- **APIs**: Open-Meteo (날씨), DuckDuckGo (검색)
-
-## 📝 라이선스
+## 라이선스
 
 MIT License
+
+## 기여
+
+이슈나 개선 사항이 있으면 자유롭게 제안해주세요!

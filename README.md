@@ -1,14 +1,15 @@
 # AWS Bedrock Nova 모델 사용 가이드
 
-이 저장소는 AWS Bedrock의 Nova 모델을 사용하여 이미지와 비디오를 생성하는 Streamlit 애플리케이션 예제를 제공합니다.
+이 저장소는 AWS Bedrock의 Nova 모델 패밀리를 활용한 다양한 실습 예제를 제공합니다.
 
 ## 개요
 
 AWS Bedrock Nova는 Amazon에서 개발한 최신 생성형 AI 모델 패밀리입니다:
 - **Nova Canvas**: 텍스트로 이미지 생성 및 이미지 편집 (인페인팅)
 - **Nova Reel**: 텍스트로 비디오 생성
+- **Nova Sonic**: 실시간 음성 대화 AI (Speech-to-Speech)
 
-이 저장소는 두 가지 실용적인 예제 애플리케이션을 포함합니다.
+이 저장소는 세 가지 실용적인 예제 애플리케이션을 포함합니다.
 
 ## 프로젝트 구조
 
@@ -24,6 +25,13 @@ bedrock-test/
 │   ├── app.py                # Streamlit 비디오 생성 애플리케이션
 │   ├── .streamlit/
 │   │   └── secrets.toml     # AWS 자격증명 (생성 필요)
+│   └── README.md            # 상세 사용 가이드
+│
+├── nova-sonic-tool-use/      # Nova Sonic 음성 대화 앱 (Tool Use)
+│   ├── server.js             # Entry point
+│   ├── src/                  # 서버 구현
+│   ├── tools/                # Tool Use 구현
+│   ├── public/               # 웹 클라이언트
 │   └── README.md            # 상세 사용 가이드
 │
 └── README.md                 # 이 파일
@@ -42,7 +50,33 @@ bedrock-test/
 
 ## 빠른 시작
 
-### 1. 이미지 생성 앱 (Nova Canvas)
+### 1. 음성 대화 앱 (Nova Sonic) ⭐ NEW
+
+실시간 음성 대화 AI with Tool Use - 날씨 조회, 웹 검색 기능 포함
+
+```bash
+cd nova-sonic-tool-use
+npm install
+
+# .env 파일 생성 및 AWS 자격증명 입력
+echo "AWS_ACCESS_KEY_ID=your-key" > .env
+echo "AWS_SECRET_ACCESS_KEY=your-secret" >> .env
+echo "AWS_REGION=us-east-1" >> .env
+
+npm start
+# 브라우저에서 http://localhost:3000 접속
+```
+
+**주요 기능:**
+- 실시간 음성 대화 (Speech-to-Speech)
+- Tool Use: 날씨 조회, 웹 검색
+- Barge-in: AI 말하는 중 끊기 가능
+- 다양한 음성 선택 (Matthew, Tiffany, Amy 등)
+- 모듈화된 구조 (쉬운 확장)
+
+**자세한 내용:** [nova-sonic-tool-use/README.md](nova-sonic-tool-use/README.md)
+
+### 2. 이미지 생성 앱 (Nova Canvas)
 
 텍스트 프롬프트로 이미지를 생성하거나 기존 이미지를 편집할 수 있습니다.
 
@@ -66,7 +100,7 @@ streamlit run app.py
 
 **자세한 내용:** [image-generation-test/README.md](image-generation-test/README.md)
 
-### 2. 비디오 생성 앱 (Nova Reel)
+### 3. 비디오 생성 앱 (Nova Reel)
 
 텍스트 프롬프트로 짧은 비디오를 생성합니다.
 
