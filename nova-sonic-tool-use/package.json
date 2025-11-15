@@ -10,9 +10,10 @@
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.700.0",
     "@smithy/node-http-handler": "^3.0.0",
+    "cheerio": "^1.1.2",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "ws": "^8.14.2",
-    "dotenv": "^16.3.1"
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
