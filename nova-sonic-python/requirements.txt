@@ -1,0 +1,29 @@
+# AWS SDK for Python (experimental - bidirectional streaming)
+aws-sdk-bedrock-runtime>=0.1.0
+smithy-aws-core>=0.1.0
+
+# Web framework and WebSocket
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+aiohttp>=3.9.0
+
+# Audio processing
+# pyaudio>=0.2.14  # Not needed - audio handled in browser
+
+# UI framework
+streamlit>=1.28.0
+
+# HTTP requests
+httpx>=0.25.0
+aiofiles>=23.2.1
+
+# HTML parsing for web search
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Utilities
+python-multipart>=0.0.6
