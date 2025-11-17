@@ -301,6 +301,11 @@ if st.session_state.is_recording:
                         await playAudio(data.content);
                     }} else if (data.type === 'text') {{
                         console.log(`${{data.role}}: ${{data.content}}`);
+                    }} else if (data.type === 'barge-in') {{
+                        console.log('Barge-in detected! Clearing audio queue');
+                        // Clear the audio queue to stop playback immediately
+                        audioQueue = [];
+                        isPlayingAudio = false;
                     }} else if (data.type === 'error') {{
                         console.error('Error:', data.message);
                     }}

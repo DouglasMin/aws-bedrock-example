@@ -197,9 +197,18 @@ class BedrockStreamManager:
                     break
                 except json.JSONDecodeError as e:
                     debug_print(f"JSON parse error: {e}")
+                    # Continue processing, don't break
                 except Exception as e:
-                    debug_print(f"Error receiving response: {e}")
-                    break
+                    error_msg = str(e)
+                    if "Invalid event bytes" in error_msg:
+                        debug_print(f"Invalid event bytes (likely end of response), continuing...")
+                        # Don't break, continue processing
+                    elif "ValidationException" in error_msg:
+                        debug_print(f"Validation error: {error_msg}")
+                        break
+                    else:
+                        debug_print(f"Error receiving response: {e}")
+                        break
             
         except Exception as e:
             debug_print(f"Response processing error: {e}")
@@ -230,11 +239,6 @@ class BedrockStreamManager:
         elif 'textOutput' in evt:
             text_content = evt['textOutput']['content']
             role = evt['textOutput'].get('role', 'ASSISTANT')
-            
-            # Check for barge-in
-            if '{ "interrupted" : true }' in text_content:
-                debug_print("Barge-in detected. Stopping audio output.")
-                self.barge_in = True
             
             # Only display non-speculative assistant text or user text
             if (self.role == "ASSISTANT" and self.display_assistant_text):
@@ -277,7 +281,11 @@ class BedrockStreamManager:
         
         # contentEnd with TOOL type - execute tool
         elif 'contentEnd' in evt:
-            if evt['contentEnd'].get('type') == 'TOOL':
+            content_type = evt['contentEnd'].get('type')
+            stop_reason = evt['contentEnd'].get('stopReason')
+            
+            # Handle tool execution
+            if content_type == 'TOOL':
                 try:
                     tool_result = await self.process_tool_use(self.tool_name, self.tool_use_content)
                     tool_content_id = str(uuid.uuid4())
@@ -292,12 +300,18 @@ class BedrockStreamManager:
                 except Exception as e:
                     debug_print(f"Tool execution failed: {e}")
             
-            # Check for barge-in
-            stop_reason = evt['contentEnd'].get('stopReason')
+            # Handle barge-in (INTERRUPTED stopReason) - this is the official signal
             if stop_reason == 'INTERRUPTED':
-                debug_print("Barge-in detected!")
+                debug_print("🛑 BARGE-IN DETECTED via stopReason=INTERRUPTED")
+                self.barge_in = True
+                # Immediately notify client to stop audio playback
                 if self.response_handler:
                     self.response_handler('barge-in', {'message': 'User interrupted'})
+            
+            # Reset barge-in flag when assistant audio content ends normally
+            if content_type == 'AUDIO' and stop_reason in ['END_TURN', 'PARTIAL_TURN']:
+                debug_print("Assistant audio ended normally, resetting barge-in flag")
+                self.barge_in = False
         
         # completionEnd
         elif 'completionEnd' in evt:
