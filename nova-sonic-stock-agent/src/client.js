@@ -9,6 +9,7 @@ const {
 const { NodeHttp2Handler } = require('@smithy/node-http-handler');
 const { MODEL_ID } = require('./config');
 const NovaSession = require('./session');
+const HybridSession = require('./hybrid-session');
 
 class NovaClient {
     constructor() {
@@ -33,9 +34,14 @@ class NovaClient {
 
     /**
      * Start a new streaming session
+     * @param {boolean} useAgent - If true, use hybrid mode with Bedrock Agent
      */
-    async startSession(sessionId, voiceId, responseHandler) {
-        const session = new NovaSession(sessionId, voiceId);
+    async startSession(sessionId, voiceId, responseHandler, useAgent = true) {
+        // Choose session type
+        const session = useAgent 
+            ? new HybridSession(sessionId, voiceId)
+            : new NovaSession(sessionId, voiceId);
+        
         session.start();
 
         try {
@@ -44,12 +50,12 @@ class NovaClient {
                 body: session.generateEventStream()
             });
 
-            console.log('📡 Sending command to Bedrock...');
+            console.log(`📡 Starting ${useAgent ? 'HYBRID' : 'STANDARD'} session...`);
             
             const response = await this.bedrockClient.send(command);
             
             // Process responses
-            this.processResponses(response.body, session, responseHandler);
+            this.processResponses(response.body, session, responseHandler, useAgent);
             
             return session;
             
@@ -62,7 +68,7 @@ class NovaClient {
     /**
      * Process response stream from Bedrock
      */
-    async processResponses(responseBody, session, responseHandler) {
+    async processResponses(responseBody, session, responseHandler, useAgent = false) {
         try {
             console.log('👂 Listening for Bedrock responses...');
             let responseCount = 0;
@@ -78,7 +84,7 @@ class NovaClient {
                         const jsonResponse = JSON.parse(textResponse);
 
                         if (jsonResponse.event) {
-                            await this.handleEvent(jsonResponse.event, session, responseHandler);
+                            await this.handleEvent(jsonResponse.event, session, responseHandler, useAgent);
                         }
                     } catch (parseError) {
                         console.error('❌ JSON parse error:', parseError.message);
@@ -98,7 +104,7 @@ class NovaClient {
     /**
      * Handle individual events from Bedrock
      */
-    async handleEvent(evt, session, responseHandler) {
+    async handleEvent(evt, session, responseHandler, useAgent = false) {
         // contentStart - track generation stage
         if (evt.contentStart) {
             const type = evt.contentStart.type;
@@ -125,11 +131,16 @@ class NovaClient {
             if (role === 'ASSISTANT' && session.currentGenerationStage === 'SPECULATIVE') {
                 console.log(`🔮 Speculative text (ignored): ${text.substring(0, 50)}...`);
             } else {
-                responseHandler('text', {
-                    role: role.toLowerCase(),
-                    content: text
-                });
-                console.log(`💬 ${role}: ${text}`);
+                // In hybrid mode, USER text is transcription - send to agent
+                if (useAgent && role === 'USER' && session.handleTranscribedText) {
+                    await session.handleTranscribedText(text, responseHandler);
+                } else {
+                    responseHandler('text', {
+                        role: role.toLowerCase(),
+                        content: text
+                    });
+                    console.log(`💬 ${role}: ${text}`);
+                }
             }
         }
         // audioOutput: voice response
@@ -138,8 +149,8 @@ class NovaClient {
                 content: evt.audioOutput.content
             });
         }
-        // toolUse: tool call request
-        else if (evt.toolUse) {
+        // toolUse: tool call request (only in standard mode)
+        else if (evt.toolUse && !useAgent) {
             try {
                 const toolResult = await session.handleToolUse(evt.toolUse);
                 responseHandler('tool-result', {

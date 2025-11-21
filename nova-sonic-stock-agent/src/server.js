@@ -7,12 +7,43 @@ const express = require('express');
 const WebSocket = require('ws');
 const { randomUUID } = require('crypto');
 const NovaClient = require('./client');
+const AgentClient = require('./agent-client');
 const { getAllToolSpecs } = require('../tools');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static('public'));
+app.use(express.json());
+
+// Initialize agent client
+const agentClient = new AgentClient();
+
+// Text-based agent endpoint for testing
+app.post('/api/agent/query', async (req, res) => {
+    const { query, sessionId } = req.body;
+    
+    if (!query) {
+        return res.status(400).json({ error: 'Query is required' });
+    }
+    
+    const sid = sessionId || randomUUID();
+    const responses = [];
+    
+    try {
+        await agentClient.invokeAgent(sid, query, (type, data) => {
+            responses.push({ type, data });
+        });
+        
+        res.json({
+            sessionId: sid,
+            responses: responses
+        });
+    } catch (error) {
+        console.error('Agent query error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // Log available tools on startup
 const availableTools = getAllToolSpecs();
@@ -53,11 +84,18 @@ wss.on('connection', (ws) => {
                 };
                 
                 try {
+                    // Use hybrid mode (with agent) by default
+                    const useAgent = data.useAgent !== false; // Allow override
+                    
                     currentSession = await novaClient.startSession(
                         sessionId, 
                         data.voiceId || 'matthew',
-                        responseHandler
+                        responseHandler,
+                        useAgent
                     );
+                    
+                    console.log(`🎯 Mode: ${useAgent ? 'HYBRID (Agent)' : 'STANDARD (Tools)'}`);
+
                     
                     // Wait for session to be ready
                     const checkReady = setInterval(() => {

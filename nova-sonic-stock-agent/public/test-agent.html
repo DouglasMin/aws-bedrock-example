@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Bedrock Agent</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .response-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        .response-container.show {
+            display: block;
+        }
+        .response-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-left: 4px solid #007bff;
+            border-radius: 3px;
+        }
+        .response-type {
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+        .response-content {
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Bedrock Agent Test</h1>
+        <p class="subtitle">Test the Investment Research Assistant Agent</p>
+        
+        <div class="input-group">
+            <label for="query">Your Query:</label>
+            <textarea id="query" placeholder="e.g., Analyze AAPL stock and give me the latest news"></textarea>
+        </div>
+        
+        <div class="input-group">
+            <label for="sessionId">Session ID (optional):</label>
+            <input type="text" id="sessionId" placeholder="Leave empty for new session">
+        </div>
+        
+        <button id="submitBtn" onclick="submitQuery()">Send Query</button>
+        
+        <div id="responseContainer" class="response-container">
+            <h3>Response:</h3>
+            <div id="responses"></div>
+        </div>
+    </div>
+
+    <script>
+        async function submitQuery() {
+            const query = document.getElementById('query').value.trim();
+            const sessionId = document.getElementById('sessionId').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const responseContainer = document.getElementById('responseContainer');
+            const responsesDiv = document.getElementById('responses');
+            
+            if (!query) {
+                alert('Please enter a query');
+                return;
+            }
+            
+            // Show loading
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            responseContainer.classList.add('show');
+            responsesDiv.innerHTML = '<div class="loading">⏳ Waiting for agent response...</div>';
+            
+            try {
+                const response = await fetch('/api/agent/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        sessionId: sessionId || undefined
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+                
+                // Display responses
+                responsesDiv.innerHTML = '';
+                
+                if (data.responses && data.responses.length > 0) {
+                    data.responses.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'response-item';
+                        
+                        const typeDiv = document.createElement('div');
+                        typeDiv.className = 'response-type';
+                        typeDiv.textContent = item.type;
+                        
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'response-content';
+                        contentDiv.textContent = JSON.stringify(item.data, null, 2);
+                        
+                        div.appendChild(typeDiv);
+                        div.appendChild(contentDiv);
+                        responsesDiv.appendChild(div);
+                    });
+                    
+                    // Update session ID field
+                    if (data.sessionId) {
+                        document.getElementById('sessionId').value = data.sessionId;
+                    }
+                } else {
+                    responsesDiv.innerHTML = '<div class="response-item">No responses received</div>';
+                }
+                
+            } catch (error) {
+                responsesDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Query';
+            }
+        }
+        
+        // Allow Enter key to submit (with Shift+Enter for new line)
+        document.getElementById('query').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitQuery();
+            }
+        });
+    </script>
+</body>
+</html>
